@@ -364,7 +364,7 @@ function persistModel() {
 
 function loadModel() {
   const saved = localStorage.getItem(MODEL_KEY);
-  return saved === "llama-3.3-70b-versatile" ? "llama-3.3-70b-versatile" : "llama-3.1-8b-instant";
+  return saved === "llama3.2:3b" ? "llama3.2:3b" : "llama3.2:1b";
 }
 
 function persistAutoSpeak() {

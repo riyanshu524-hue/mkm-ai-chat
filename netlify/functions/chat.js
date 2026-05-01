@@ -1,5 +1,6 @@
-const DEFAULT_MODEL = "llama-3.1-8b-instant"
-const ALLOWED_MODELS = new Set (["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]);
+const DEFAULT_MODEL = "llama3.2:3b"
+const ALLOWED_MODELS = new Set (["llama3.2:3b", "llama3.2:1b", "qwen2.5:1.5b", "gemma2:2b"]);
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const jsonHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*"
@@ -21,38 +22,38 @@ export const handler = async (event) => {
     return { statusCode: 405, headers: jsonHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  if (!process.env.GROQ_API_KEY) {
-    return { statusCode: 500, headers: jsonHeaders, body: JSON.stringify({ error: "Missing GROQ_API_KEY" }) };
-  }
-
   try {
     const { messages = [], attachments = [], model = DEFAULT_MODEL } = JSON.parse(event.body || "{}");
     const selectedModel = ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL;
-    const openAiMessages = buildMessages(messages, attachments);
+    const ollamaMessages = buildMessages(messages, attachments);
 
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const ollamaRes = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         model: selectedModel,
-        messages: openAiMessages,
-        temperature: 0.7
+        messages: ollamaMessages,
+        stream: false,
+        options: {
+          temperature: 0.7,
+          top_p: 0.9,
+          max_tokens: 1000
+        }
       })
     });
 
-    const data = await groqRes.json();
-    if (!groqRes.ok) {
+    const data = await ollamaRes.json();
+    if (!ollamaRes.ok) {
       return {
-        statusCode: groqRes.status,
+        statusCode: ollamaRes.status,
         headers: jsonHeaders,
-        body: JSON.stringify({ error: data.error?.message || "Groq request failed" })
+        body: JSON.stringify({ error: data.error || "Ollama request failed" })
       };
     }
 
-    const text = data.choices?.[0]?.message?.content || "";
+    const text = data.message?.content || "";
     return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ text }) };
   } catch (error) {
     return { statusCode: 500, headers: jsonHeaders, body: JSON.stringify({ error: error.message }) };
