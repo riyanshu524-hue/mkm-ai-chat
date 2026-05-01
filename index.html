@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/icons/mkm-512.svg" />
+    <title>MKM</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <h1>MKM</h1>
+          <button id="new-chat-btn" class="ghost-btn">+ New</button>
+        </div>
+        <div id="chat-list" class="chat-list"></div>
+      </aside>
+
+      <main class="chat-main">
+        <header class="topbar">
+          <button id="menu-btn" class="icon-btn" aria-label="Open chat history">☰</button>
+          <div class="brand">MKM</div>
+          <label class="auto-speak-toggle" title="Auto speak AI replies">
+            <input id="auto-speak-toggle" type="checkbox" />
+            <span>Auto Speak</span>
+          </label>
+        </header>
+
+        <section id="chat-window" class="chat-window"></section>
+
+        <div class="composer-wrap">
+          <div id="upload-preview" class="upload-preview hidden"></div>
+          <div class="composer">
+            <button id="attach-btn" class="icon-btn" aria-label="Attach file">📎</button>
+            <button id="mic-btn" class="icon-btn" aria-label="Voice input">🎤</button>
+            <select id="model-select" class="model-select" aria-label="Select AI model">
+              <option value="llama3-8b-8192" selected>Llama 3 8B</option>
+              <option value="llama3-70b-8192">Llama 3 70B</option>
+            </select>
+            <textarea
+              id="prompt-input"
+              placeholder="Message MKM..."
+              rows="1"
+            ></textarea>
+            <button id="image-btn" class="icon-btn" aria-label="Generate image">🖼️</button>
+            <button id="send-btn" class="send-btn" aria-label="Send message">Send</button>
+          </div>
+          <input id="file-input" type="file" multiple class="hidden" />
+        </div>
+      </main>
+    </div>
+
+    <template id="msg-template">
+      <article class="bubble-row">
+        <div class="avatar"></div>
+        <div class="bubble"></div>
+      </article>
+    </template>
+
+    <script src="/script.js" type="module"></script>
+  </body>
+</html>
