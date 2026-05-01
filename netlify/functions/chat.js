@@ -1,6 +1,6 @@
-const DEFAULT_MODEL = "gemini-1.5-flash"
-const ALLOWED_MODELS = new Set (["gemini-1.5-flash", "gemini-1.5-pro"]);
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const DEFAULT_MODEL = "openai/gpt-3.5-turbo"
+const ALLOWED_MODELS = new Set (["openai/gpt-3.5-turbo", "meta-llama/llama-3.1-8b-instruct", "anthropic/claude-3-haiku"]);
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const jsonHeaders = {
   "Content-Type": "application/json",
@@ -23,41 +23,41 @@ export const handler = async (event) => {
     return { statusCode: 405, headers: jsonHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    return { statusCode: 500, headers: jsonHeaders, body: JSON.stringify({ error: "Missing GEMINI_API_KEY" }) };
+  if (!process.env.OPENROUTER_API_KEY) {
+    return { statusCode: 500, headers: jsonHeaders, body: JSON.stringify({ error: "Missing OPENROUTER_API_KEY" }) };
   }
 
   try {
     const { messages = [], attachments = [], model = DEFAULT_MODEL } = JSON.parse(event.body || "{}");
     const selectedModel = ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL;
-    const geminiMessages = buildMessages(messages, attachments);
+    const openrouterMessages = buildMessages(messages, attachments);
 
-    const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${GEMINI_API_KEY}`, {
+    const openrouterRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://mkm-ai-chat.netlify.app",
+        "X-Title": "MKM AI Chat"
       },
       body: JSON.stringify({
-        contents: geminiMessages,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
-          topP: 0.8,
-          topK: 40
-        }
+        model: selectedModel,
+        messages: openrouterMessages,
+        temperature: 0.7,
+        max_tokens: 1000
       })
     });
 
-    const data = await geminiRes.json();
-    if (!geminiRes.ok) {
+    const data = await openrouterRes.json();
+    if (!openrouterRes.ok) {
       return {
-        statusCode: geminiRes.status,
+        statusCode: openrouterRes.status,
         headers: jsonHeaders,
-        body: JSON.stringify({ error: data.error?.message || "Gemini request failed" })
+        body: JSON.stringify({ error: data.error?.message || "OpenRouter request failed" })
       };
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = data.choices?.[0]?.message?.content || "";
     return { statusCode: 200, headers: jsonHeaders, body: JSON.stringify({ text }) };
   } catch (error) {
     return { statusCode: 500, headers: jsonHeaders, body: JSON.stringify({ error: error.message }) };
@@ -65,44 +65,33 @@ export const handler = async (event) => {
 };
 
 function buildMessages(messages, attachments) {
-  const geminiMessages = [];
-  
-  // Convert OpenAI format to Gemini format
-  for (const message of messages) {
-    if (message.role === 'user') {
-      let content = message.content || "";
-      
-      // Handle attachments
-      if (attachments?.length) {
-        const attachmentNotes = attachments.map((file) => {
-          if (file.dataUrl && file.type?.startsWith("image/")) {
-            return {
-              inline_data: {
-                mime_type: file.type,
-                data: file.dataUrl.split(',')[1]
-              }
-            };
-          }
-          const textSnippet = file.text ? `\nExtracted text:\n${String(file.text).slice(0, 9000)}` : "";
-          return `File attached: ${file.name} (${file.type}, ${file.size} bytes).${textSnippet}`;
-        });
-        
-        // Build Gemini content parts
-        const parts = [{ text: content }];
-        attachmentNotes.forEach(note => {
-          if (typeof note === 'object' && note.inline_data) {
-            parts.push(note);
-          } else {
-            parts.push({ text: note });
-          }
-        });
-        
-        geminiMessages.push({ role: "user", parts });
-      } else {
-        geminiMessages.push({ role: "user", parts: [{ text: content }] });
-      }
+  const mapped = messages.map((m) => ({ role: m.role, content: m.content || "" }));
+  if (!attachments?.length) return mapped;
+
+  const attachmentNotes = attachments.map((file) => {
+    if (file.dataUrl && file.type?.startsWith("image/")) {
+      return {
+        type: "image_url",
+        image_url: { url: file.dataUrl }
+      };
     }
-  }
-  
-  return geminiMessages;
+    const textSnippet = file.text ? `\nExtracted text:\n${String(file.text).slice(0, 9000)}` : "";
+    return {
+      type: "text",
+      text: `File attached: ${file.name} (${file.type}, ${file.size} bytes).${textSnippet}`
+    };
+  });
+
+  const lastUserIdx = [...mapped].map((m) => m.role).lastIndexOf("user");
+  if (lastUserIdx === -1) return mapped;
+
+  const textContent = mapped[lastUserIdx].content || "Analyze attached files.";
+  mapped[lastUserIdx] = {
+    role: "user",
+    content: [
+      { type: "text", text: textContent },
+      ...attachmentNotes
+    ]
+  };
+  return mapped;
 }

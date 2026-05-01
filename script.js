@@ -364,7 +364,7 @@ function persistModel() {
 
 function loadModel() {
   const saved = localStorage.getItem(MODEL_KEY);
-  return saved === "gemini-1.5-flash" ? "gemini-1.5-flash" : "gemini-1.5-flash";
+  return saved === "openai/gpt-3.5-turbo" ? "openai/gpt-3.5-turbo" : "openai/gpt-3.5-turbo";
 }
 
 function persistAutoSpeak() {
