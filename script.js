@@ -364,7 +364,7 @@ function persistModel() {
 
 function loadModel() {
   const saved = localStorage.getItem(MODEL_KEY);
-  return saved === "llama3.2:3b" ? "llama3.2:3b" : "llama3.2:1b";
+  return saved === "gemini-1.5-flash" ? "gemini-1.5-flash" : "gemini-1.5-flash";
 }
 
 function persistAutoSpeak() {
