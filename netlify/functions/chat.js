@@ -1,5 +1,5 @@
-const DEFAULT_MODEL = "llama3-8b-8192"
-const ALLOWED_MODELS = new Set (["llama3-8b-8192", "llama3-70b-8192", ]);
+const DEFAULT_MODEL = "llama-3.1-8b-instant"
+const ALLOWED_MODELS = new Set (["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]);
 const jsonHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*"
@@ -30,7 +30,7 @@ export const handler = async (event) => {
     const selectedModel = ALLOWED_MODELS.has(model) ? model : DEFAULT_MODEL;
     const openAiMessages = buildMessages(messages, attachments);
 
-    const groqRes = await fetch("https://api.groq.com/v1/chat/completions", {
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
